@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.backend
+    container_name: sentinel_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://neondb_owner:npg_Y6Nzxe3fCRib@ep-summer-voice-ayutsy4d-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require
+      - SECRET_KEY=sentinel_secret_key_change_in_production_gujarat_cctv_2026
+      - RTSP_TRANSPORT=tcp
+    volumes:
+      - ./evidence:/app/evidence
+      - ./logs:/app/logs
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sentinel_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend

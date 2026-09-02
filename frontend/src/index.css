@@ -1,0 +1,36 @@
+@import "leaflet/dist/leaflet.css";
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #0a0d14;
+    color: #f1f5f9;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom scrollbar for control room telemetry panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0d14;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Leaflet map dark mode styling */
+.leaflet-container {
+  background: #0a0d14 !important;
+  font-family: inherit;
+}
+.dark-map-tiles {
+  filter: brightness(0.85) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}

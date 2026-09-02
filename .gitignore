@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environments
+.env
+**/.env
+*.env
+.venv
+env/
+venv/
+ENV/
+*.pt
+*.onnx
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+*.local
+
+# Logs and Evidence
+logs/
+*.log
+evidence/crops/ev_*.jpg
+!evidence/crops/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
