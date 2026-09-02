@@ -74,9 +74,9 @@ The Sentinel platform introduces an interoperability and AI intelligence layer a
 
 ## Critical Engineering Principles & Compliance
 
-1. **PTS Timestamp Propagation**: Frame arrival wall-clock time is never substituted for video presentation timestamps (PTS). Speed, dwell, and journey metrics use actual video PTS.
+1. **PTS Timestamp Propagation**: Frame arrival wall-clock time is never substituted for video presentation timestamps (PTS). Preserves media timestamps required for reliable temporal analysis.
 2. **RTSP over TCP**: All RTSP stream connections default to `rtsp_transport=tcp` to eliminate packet drop and UDP packet artifacting.
 3. **Exponential Backoff Reconnection**: Failed camera streams reconnect with exponential backoff ($2\text{s} \to 4\text{s} \to 8\text{s} \to 16\text{s} \to 30\text{s}\text{ max}$).
 4. **Temporal OCR Fusion**: Aggregates and weights multiple OCR readings across frames for a single tracked vehicle using character consensus and frequency scoring.
 5. **Observed vs Inferred Movement**: Strict evidentiary distinction between **Observed Detections** at verified camera nodes and **Inferred Movement** along highway transit corridors (NH-48 / NE-1).
-6. **Government Integration Adapters**: Abstracted connectors for VAHAN, Sarathi, and CCTNS without unsupported integration claims.
+6. **Government Integration Adapters**: Vehicle Registry integration layer with authorized VAHAN connector support (Representative / Demo Data mode).

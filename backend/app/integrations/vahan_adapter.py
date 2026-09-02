@@ -13,6 +13,8 @@ class VehicleRegistrationRecord(BaseModel):
     fitness_validity: str
     insurance_validity: str
     status: str
+    is_representative_data: bool = True
+    source_label: str = "VAHAN Connector (Representative / Demo Data)"
 
 class VehicleRegistryAdapter(ABC):
     """

@@ -44,7 +44,7 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ initialP
           <FileText className="w-5 h-5 text-sky-400" />
           <div>
             <h2 className="text-sm font-bold text-white uppercase font-mono">INVESTIGATION DOSSIER WORKSPACE</h2>
-            <p className="text-[11px] text-slate-400">Compile court-admissible evidentiary case files with CCTV timestamps, camera IDs, and spatial transit maps.</p>
+            <p className="text-[11px] text-slate-400">Compile evidence-ready investigation records with traceable CCTV timestamps, camera IDs, and spatial transit maps.</p>
           </div>
         </div>
 
@@ -189,10 +189,15 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ initialP
             </div>
           </div>
 
-          {/* Notes */}
-          <div className="p-3 bg-slate-900 rounded border border-slate-800 text-[11px]">
-            <div className="text-[10px] text-slate-400 uppercase mb-1">Investigating Notes</div>
-            <div className="text-slate-200">{dossier.notes}</div>
+          {/* Notes & Analytical Disclaimer */}
+          <div className="p-3 bg-slate-900 rounded border border-slate-800 text-[11px] space-y-2">
+            <div>
+              <div className="text-[10px] text-slate-400 uppercase mb-1">Investigating Notes</div>
+              <div className="text-slate-200">{dossier.notes}</div>
+            </div>
+            <div className="pt-2 border-t border-slate-800 text-[10px] text-slate-500 italic">
+              * Notice: Inferred transit intervals are calculated from spatio-temporal correlations between verified CCTV observations and do not represent continuous physical surveillance.
+            </div>
           </div>
         </div>
       )}
