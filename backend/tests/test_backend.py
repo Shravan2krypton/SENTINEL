@@ -116,6 +116,71 @@ def test_journey_reconstruction_structure():
     assert "observed_points" in journey
     assert "inferred_polyline" in journey
 
+def test_discovery_scan_and_import():
+    """Verify P1 Discovery Center scan, candidate generation, and import."""
+    login_res = client.post("/api/auth/login", json={
+        "username": "admin",
+        "password": "Sentinel@2026"
+    })
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    scan_res = client.post("/api/discovery/start", json={
+        "network_subnet": "10.200.0.0/16",
+        "scan_sentinel_grid": True,
+        "scan_onvif": True,
+        "scan_vms_api": True,
+        "scan_nvr": True
+    }, headers=headers)
+    assert scan_res.status_code == 200
+    results = scan_res.json()
+    assert results["total_discovered"] > 0
+    assert len(results["candidates"]) > 0
+
+    candidate_ids = [c["candidate_id"] for c in results["candidates"][:2]]
+    import_res = client.post("/api/discovery/import", json={
+        "candidate_ids": candidate_ids,
+        "processing_policy": "CONTINUOUS_ANPR"
+    }, headers=headers)
+    assert import_res.status_code == 200
+    assert import_res.json()["imported_count"] >= 0
+
+def test_case_management_lifecycle():
+    """Verify P1 Case creation, evidence linking, and status update."""
+    login_res = client.post("/api/auth/login", json={
+        "username": "admin",
+        "password": "Sentinel@2026"
+    })
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create_res = client.post("/api/cases", json={
+        "title": "Automated Test Case: Stolen Vehicle Intercept",
+        "description": "Transit corridor investigation along Vadodara-Anand-Ahmedabad",
+        "target_plate": "GJ06AB1234",
+        "investigating_officer": "Insp. Automated Test",
+        "priority": "HIGH"
+    }, headers=headers)
+    assert create_res.status_code == 200
+    case_data = create_res.json()
+    case_id = case_data["id"]
+    assert case_data["status"] == "OPEN"
+
+    ev_res = client.post(f"/api/cases/{case_id}/evidence", json={
+        "camera_id": "CAM-GJ-AHM-001",
+        "camera_location": "Ahmedabad SP Ring Road",
+        "plate_number": "GJ06AB1234",
+        "evidence_type": "OBSERVED_CCTV",
+        "notes": "Confirmed sighting at 11:27"
+    }, headers=headers)
+    assert ev_res.status_code == 200
+
+    patch_res = client.patch(f"/api/cases/{case_id}", json={
+        "status": "UNDER_INVESTIGATION"
+    }, headers=headers)
+    assert patch_res.status_code == 200
+    assert patch_res.json()["status"] == "UNDER_INVESTIGATION"
+
 if __name__ == "__main__":
     test_health_endpoint()
     test_sentinel_ingest_catalogue()

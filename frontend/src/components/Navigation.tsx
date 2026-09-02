@@ -9,16 +9,20 @@ import {
   FileText, 
   Activity, 
   History,
-  Radio
+  Radio,
+  Radar,
+  Briefcase
 } from 'lucide-react';
 
 export type ViewType = 
   | 'dashboard' 
   | 'live' 
   | 'gis' 
+  | 'discovery'
   | 'vehicles' 
   | 'watchlist' 
   | 'alerts' 
+  | 'cases'
   | 'investigations' 
   | 'health' 
   | 'audit';
@@ -34,9 +38,11 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setCurrentV
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'live', label: 'Live Monitoring', icon: Video },
     { id: 'gis', label: 'Statewide GIS', icon: MapIcon },
+    { id: 'discovery', label: 'Discovery Center', icon: Radar },
     { id: 'vehicles', label: 'Vehicle Intelligence', icon: Search },
     { id: 'watchlist', label: 'Watchlist', icon: ShieldAlert },
     { id: 'alerts', label: 'Real-Time Alerts', icon: Bell, badge: activeAlertCount },
+    { id: 'cases', label: 'Case Management', icon: Briefcase },
     { id: 'investigations', label: 'Case Dossier', icon: FileText },
     { id: 'health', label: 'System Health', icon: Activity },
     { id: 'audit', label: 'Audit Logs', icon: History },

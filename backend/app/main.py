@@ -22,6 +22,8 @@ from app.api.v1.vehicles import router as vehicles_router
 from app.api.v1.watchlist import router as watchlist_router
 from app.api.v1.alerts import router as alerts_router
 from app.api.v1.investigations import router as investigations_router
+from app.api.v1.discovery import router as discovery_router
+from app.api.v1.cases import router as cases_router
 from app.api.v1.system import router as system_router
 from app.api.v1.ws import router as ws_router
 
@@ -92,6 +94,8 @@ app.include_router(vehicles_router, prefix=settings.API_V1_STR)
 app.include_router(watchlist_router, prefix=settings.API_V1_STR)
 app.include_router(alerts_router, prefix=settings.API_V1_STR)
 app.include_router(investigations_router, prefix=settings.API_V1_STR)
+app.include_router(discovery_router, prefix=settings.API_V1_STR)
+app.include_router(cases_router, prefix=settings.API_V1_STR)
 app.include_router(ws_router)
 
 @app.get("/")

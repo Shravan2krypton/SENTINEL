@@ -94,13 +94,76 @@ export interface JourneyStep {
   observation_notes?: string;
 }
 
+export interface CaseEvidence {
+  id: string;
+  case_id: string;
+  detection_id?: string;
+  camera_id: string;
+  camera_location?: string;
+  plate_number?: string;
+  timestamp_pts: string;
+  confidence?: string;
+  evidence_type: string;
+  evidence_url?: string;
+  metadata_payload?: Record<string, any>;
+  added_by: string;
+  added_at: string;
+}
+
+export interface Case {
+  id: string;
+  case_number: string;
+  title: string;
+  description?: string;
+  target_plate?: string;
+  investigating_officer: string;
+  department: string;
+  status: string;
+  priority: string;
+  notes?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  evidence_items?: CaseEvidence[];
+}
+
+export interface DiscoveredCamera {
+  candidate_id: string;
+  source_type: string;
+  device_name: string;
+  location: string;
+  district: string;
+  ip_address: string;
+  port: number;
+  codec: string;
+  resolution: string;
+  reported_fps: number;
+  status: string;
+  rtsp_url: string;
+  is_authenticated: boolean;
+  capabilities: Record<string, any>;
+  discovered_at: string;
+}
+
+export interface DiscoveryResults {
+  total_discovered: number;
+  vms_servers_found: number;
+  nvrs_found: number;
+  onvif_cameras_found: number;
+  rtsp_sources_found: number;
+  reachable_sources: number;
+  authenticated_sources: number;
+  stream_available: number;
+  candidates: DiscoveredCamera[];
+}
+
 export interface VehicleJourney {
   plate_number: string;
   total_detections: number;
   start_time?: string;
   end_time?: string;
-  districts_traversed: string[];
   total_estimated_distance_km: number;
+  total_duration_minutes: number;
   is_watchlist_hit: boolean;
   watchlist_category?: string;
   steps: JourneyStep[];
@@ -121,7 +184,7 @@ class ApiService {
     localStorage.removeItem('sentinel_token');
   }
 
-  private async request(endpoint: string, options: RequestInit = {}) {
+  private async request<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string> || {})
@@ -241,6 +304,56 @@ class ApiService {
       this.setToken(data.access_token);
     }
     return data;
+  }
+
+  // Discovery Center (P1)
+  async startDiscovery(data: { network_subnet: string; scan_sentinel_grid: boolean; scan_onvif: boolean; scan_vms_api: boolean; scan_nvr: boolean }) {
+    return this.request<DiscoveryResults>('/api/discovery/start', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getDiscoveryResults() {
+    return this.request<DiscoveryResults>('/api/discovery/results');
+  }
+
+  async importDiscoveredCameras(candidateIds: string[], processingPolicy = 'CONTINUOUS_ANPR') {
+    return this.request('/api/discovery/import', {
+      method: 'POST',
+      body: JSON.stringify({ candidate_ids: candidateIds, processing_policy: processingPolicy })
+    });
+  }
+
+  // Case Management & Evidence (P1)
+  async getCases(status?: string) {
+    const url = status ? `/api/cases?status=${status}` : '/api/cases';
+    return this.request<Case[]>(url);
+  }
+
+  async createCase(data: { title: string; description?: string; target_plate?: string; investigating_officer: string; department?: string; priority?: string; notes?: string }) {
+    return this.request<Case>('/api/cases', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getCaseById(caseId: string) {
+    return this.request<Case>(`/api/cases/${caseId}`);
+  }
+
+  async updateCase(caseId: string, data: Partial<Case>) {
+    return this.request<Case>(`/api/cases/${caseId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async addCaseEvidence(caseId: string, evidence: { detection_id?: string; camera_id: string; camera_location?: string; plate_number?: string; confidence?: string; evidence_type?: string; evidence_url?: string; notes?: string }) {
+    return this.request<CaseEvidence>(`/api/cases/${caseId}/evidence`, {
+      method: 'POST',
+      body: JSON.stringify(evidence)
+    });
   }
 
   // Audit

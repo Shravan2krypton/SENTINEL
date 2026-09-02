@@ -8,6 +8,8 @@ import { VehicleSearchView } from './views/VehicleSearchView';
 import { WatchlistView } from './views/WatchlistView';
 import { AlertsView } from './views/AlertsView';
 import { InvestigationsView } from './views/InvestigationsView';
+import { DiscoveryCenterView } from './views/DiscoveryCenterView';
+import { CasesView } from './views/CasesView';
 import { SystemHealthView } from './views/SystemHealthView';
 import { AuditLogsView } from './views/AuditLogsView';
 import { Bell, AlertTriangle, ShieldCheck, X } from 'lucide-react';
@@ -232,6 +234,17 @@ export const App: React.FC = () => {
             <AlertsView
               alerts={alerts}
               onRefresh={loadAllData}
+              onSearchPlate={handleSearchPlate}
+            />
+          )}
+
+          {currentView === 'discovery' && (
+            <DiscoveryCenterView onCamerasImported={loadCameras} />
+          )}
+
+          {currentView === 'cases' && (
+            <CasesView
+              onOpenDossier={handleOpenDossier}
               onSearchPlate={handleSearchPlate}
             />
           )}

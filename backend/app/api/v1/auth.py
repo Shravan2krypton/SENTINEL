@@ -28,7 +28,9 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 def require_roles(allowed_roles: List[str]):
     def role_checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in allowed_roles:
+        user_role = (current_user.role or "").upper()
+        allowed_upper = [r.upper() for r in allowed_roles]
+        if user_role not in allowed_upper:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied: Required role in {allowed_roles}, your role is {current_user.role}"
