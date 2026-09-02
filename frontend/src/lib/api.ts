@@ -18,6 +18,7 @@ export interface Camera {
   is_ai_enabled: boolean;
   capabilities?: Record<string, any>;
   last_heartbeat?: string;
+  location_source?: string;
 }
 
 export interface ANPRDetection {
@@ -169,6 +170,27 @@ export interface VehicleJourney {
   steps: JourneyStep[];
   observed_points: [number, number][];
   inferred_polyline: [number, number][];
+}
+
+export interface StreamStatus {
+  camera_id: string;
+  camera_name?: string;
+  location_name?: string;
+  state: string;
+  resolution: string | null;
+  actual_fps: number;
+  declared_fps: number | null;
+  codec: string | null;
+  transport: string;
+  bitrate_kbps: number | null;
+  reconnect_attempts: number;
+  pts: number;
+  ai_status: {
+    vehicle_detection: string;
+    anpr: string;
+  };
+  health_status: string;
+  location_source?: string;
 }
 
 class ApiService {
@@ -361,8 +383,15 @@ class ApiService {
     return this.request(`/api/system/audit-logs?limit=${limit}`);
   }
 
+  async getStreamStatus(cameraId: string): Promise<StreamStatus> {
+    return this.request(`/api/streams/${cameraId}/status`);
+  }
+
   getLiveStreamUrl(cameraId: string) {
-    return `${API_BASE}/api/streams/${cameraId}/live`;
+    const token = localStorage.getItem('sentinel_token');
+    return token
+      ? `${API_BASE}/api/streams/${cameraId}/live?token=${encodeURIComponent(token)}`
+      : `${API_BASE}/api/streams/${cameraId}/live`;
   }
 }
 

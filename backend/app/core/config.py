@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     STREAM_RECONNECT_MAX_BACKOFF: int = 30
     FRAME_SAMPLE_INTERVAL: int = 3
 
+    # Demonstration External CCTV Sources (Backend Configured - Requirement 1)
+    DEMO_RTSP_VADODARA: str = "rtsp://stream.gujaratcctv.gov.in/live/vadodara_alkapuri"
+    DEMO_RTSP_AHMEDABAD: str = "rtsp://stream.gujaratcctv.gov.in/live/ahmedabad_sg_highway"
+    DEMO_RTSP_ANAND: str = "rtsp://stream.gujaratcctv.gov.in/live/anand_expressway_toll"
+
     # AI Pipeline
     YOLO_MODEL: str = "yolov8n.pt"
     DETECTION_CONFIDENCE_THRESHOLD: float = 0.35

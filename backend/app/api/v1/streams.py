@@ -57,15 +57,43 @@ async def get_stream_status(camera_id: str, db: Session = Depends(get_db), curre
     if not worker:
         return {
             "camera_id": camera_id,
+            "camera_name": camera.name,
+            "location_name": camera.location_name,
             "state": "IDLE",
+            "resolution": None,
             "actual_fps": 0.0,
+            "declared_fps": camera.reported_fps,
+            "codec": None,
+            "transport": "RTSP / TCP",
+            "bitrate_kbps": None,
             "reconnect_attempts": 0,
-            "pts": 0.0
+            "pts": 0.0,
+            "ai_status": {
+                "vehicle_detection": "ACTIVE" if camera.is_ai_enabled else "INACTIVE",
+                "anpr": "ACTIVE" if camera.is_ai_enabled else "INACTIVE"
+            },
+            "health_status": "OFFLINE" if camera.status != "ONLINE" else "HEALTHY",
+            "location_source": "SOURCE-PROVIDED LOCATION"
         }
+
     return {
         "camera_id": camera_id,
+        "camera_name": camera.name,
+        "location_name": camera.location_name,
         "state": worker.state,
+        "resolution": worker.resolution,
         "actual_fps": worker.actual_fps,
+        "declared_fps": worker.declared_fps or camera.reported_fps,
+        "codec": worker.codec,
+        "transport": worker.transport,
+        "bitrate_kbps": worker.bitrate_kbps,
         "reconnect_attempts": worker.reconnect_attempts,
-        "pts": worker.last_pts
+        "pts": worker.last_pts,
+        "ai_status": {
+            "vehicle_detection": "ACTIVE" if camera.is_ai_enabled else "INACTIVE",
+            "anpr": "ACTIVE" if camera.is_ai_enabled else "INACTIVE"
+        },
+        "health_status": "HEALTHY" if worker.state == "LIVE" else worker.state,
+        "location_source": "SOURCE-PROVIDED LOCATION"
     }
+

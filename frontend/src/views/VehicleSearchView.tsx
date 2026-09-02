@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { api, ANPRDetection, VehicleJourney } from '../lib/api';
+import { api, ANPRDetection, VehicleJourney, Camera } from '../lib/api';
 import { LiveMap } from '../components/LiveMap';
 import { 
   Search, 
@@ -17,9 +17,11 @@ import {
 interface VehicleSearchViewProps {
   initialPlate?: string;
   onOpenDossier?: (plate: string) => void;
+  cameras?: Camera[];
+  onOpenLiveView?: (cameraId: string) => void;
 }
 
-export const VehicleSearchView: React.FC<VehicleSearchViewProps> = ({ initialPlate = '', onOpenDossier }) => {
+export const VehicleSearchView: React.FC<VehicleSearchViewProps> = ({ initialPlate = '', onOpenDossier, cameras = [], onOpenLiveView }) => {
   const [plateQuery, setPlateQuery] = useState(initialPlate || 'GJ06AB1234');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

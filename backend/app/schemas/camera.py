@@ -20,6 +20,7 @@ class CameraBase(BaseModel):
     status: str
     is_ai_enabled: bool = True
     capabilities: Optional[Dict[str, Any]] = None
+    location_source: Optional[str] = "SOURCE-PROVIDED LOCATION"
 
 class CameraOut(CameraBase):
     last_heartbeat: Optional[datetime] = None
