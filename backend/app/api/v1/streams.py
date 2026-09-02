@@ -6,6 +6,8 @@ from app.core.database import get_db
 from app.models.camera import Camera
 from app.services.stream_manager import stream_manager
 from app.core.logger import logger
+from app.api.v1.auth import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/streams", tags=["Live Viewer & Streams"])
 
@@ -19,7 +21,7 @@ def frame_generator(camera_id: str, stream_url: str):
         time.sleep(0.04)  # ~25 FPS
 
 @router.get("/{camera_id}/live")
-async def get_live_stream(camera_id: str, db: Session = Depends(get_db)):
+async def get_live_stream(camera_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Unified Live Viewer Endpoint.
     Translates incoming RTSP/IP camera feeds into browser-compatible low-latency MJPEG stream.
@@ -35,7 +37,7 @@ async def get_live_stream(camera_id: str, db: Session = Depends(get_db)):
     )
 
 @router.get("/{camera_id}/snapshot")
-async def get_snapshot(camera_id: str, db: Session = Depends(get_db)):
+async def get_snapshot(camera_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     camera = db.query(Camera).filter(Camera.id == camera_id).first()
     if not camera:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Camera {camera_id} not found")
@@ -46,7 +48,7 @@ async def get_snapshot(camera_id: str, db: Session = Depends(get_db)):
     raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Stream frame not ready yet")
 
 @router.get("/{camera_id}/status")
-async def get_stream_status(camera_id: str, db: Session = Depends(get_db)):
+async def get_stream_status(camera_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     camera = db.query(Camera).filter(Camera.id == camera_id).first()
     if not camera:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Camera {camera_id} not found")

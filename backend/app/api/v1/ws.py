@@ -1,16 +1,16 @@
 import asyncio
 import json
-from typing import List, Set, Optional
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from typing import Set, Optional
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from app.core.logger import logger
 from app.core.events import event_bus, SystemEvent
+from app.core.security import decode_access_token
 
 router = APIRouter(tags=["Real-Time WebSockets"])
 
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Set[WebSocket] = set()
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -54,7 +54,30 @@ def _broadcast_system_event(event: SystemEvent):
 event_bus.subscribe("*", _broadcast_system_event)
 
 @router.websocket("/api/ws/alerts")
-async def websocket_alerts_endpoint(websocket: WebSocket):
+async def websocket_alerts_endpoint(
+    websocket: WebSocket,
+    token: Optional[str] = Query(None, description="Bearer JWT token for WebSocket authentication")
+):
+    """
+    SEC-002 FIX: WebSocket now requires a valid JWT token passed as ?token=<jwt>.
+    Unauthenticated connections are rejected with close code 4001.
+    """
+    # Validate token before accepting the connection
+    if not token:
+        await websocket.close(code=4001, reason="Unauthorized: No authentication token provided")
+        logger.warning("WebSocket connection rejected: no token provided")
+        return
+
+    payload = decode_access_token(token)
+    if not payload:
+        await websocket.close(code=4001, reason="Unauthorized: Invalid or expired token")
+        logger.warning("WebSocket connection rejected: invalid token")
+        return
+
+    username = payload.get("sub", "unknown")
+    role = payload.get("role", "unknown")
+    logger.info(f"WebSocket authenticated: user={username} role={role}")
+
     await ws_manager.connect(websocket)
     try:
         while True:
@@ -65,5 +88,6 @@ async def websocket_alerts_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
     except Exception as e:
-        logger.error(f"WebSocket error: {e}")
+        logger.error(f"WebSocket error for user {username}: {e}")
         ws_manager.disconnect(websocket)
+

@@ -11,9 +11,12 @@ services:
       - "8000:8000"
     environment:
       - ENVIRONMENT=production
-      - DATABASE_URL=postgresql://neondb_owner:npg_Y6Nzxe3fCRib@ep-summer-voice-ayutsy4d-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require
-      - SECRET_KEY=sentinel_secret_key_change_in_production_gujarat_cctv_2026
+      # SEC-001 FIX: Credentials are loaded from .env file or host environment variables.
+      # Never commit real values here. See .env.example for required variables.
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
       - RTSP_TRANSPORT=tcp
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS:-["http://localhost:5173"]}
     volumes:
       - ./evidence:/app/evidence
       - ./logs:/app/logs

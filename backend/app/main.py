@@ -26,6 +26,7 @@ from app.api.v1.discovery import router as discovery_router
 from app.api.v1.cases import router as cases_router
 from app.api.v1.system import router as system_router
 from app.api.v1.ws import router as ws_router
+from app.core.security_headers import SecurityHeadersMiddleware
 
 setup_logging()
 
@@ -48,6 +49,8 @@ async def background_sentinel_sync():
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Initializing Sentinel CCTV Intelligence Platform...")
+    # SEC-001: Fail fast if critical secrets are missing or compromised
+    settings.validate_critical_secrets()
     init_db()
     seed_initial_data()
     event_bus.start()
@@ -60,23 +63,30 @@ async def lifespan(app: FastAPI):
     stream_manager.stop_all()
     logger.info("Sentinel Platform services gracefully stopped.")
 
+# SEC-010: Swagger/ReDoc docs disabled in production to reduce attack surface
+_docs_url = "/docs" if settings.ENVIRONMENT != "production" else None
+_redoc_url = "/redoc" if settings.ENVIRONMENT != "production" else None
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="1.0.0",
     description="Interoperability and Intelligence Platform for Gujarat CCTV Network (Sentinel Camera Grid)",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url=_docs_url,
+    redoc_url=_redoc_url,
     lifespan=lifespan
 )
 
-# CORS Middleware
+# SEC-004: Explicit CORS origins — wildcard removed
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
 )
+
+# SEC-011: Security headers on every response
+app.add_middleware(SecurityHeadersMiddleware, environment=settings.ENVIRONMENT)
 
 # Mount Evidence Static Directory
 evidence_dir = os.path.join(os.getcwd(), "evidence")

@@ -3,7 +3,7 @@ import os
 import psutil
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status, Request
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -13,18 +13,30 @@ from app.models.detection import ANPRDetection
 from app.models.alert import Alert
 from app.models.audit import AuditLog
 from app.services.stream_manager import stream_manager
-from app.api.v1.auth import require_roles
+from app.api.v1.auth import require_roles, get_current_user
 from app.models.user import User
+from fastapi.security import OAuth2PasswordBearer
+from app.core.security import decode_access_token
 
 router = APIRouter(tags=["System Health & Observability"])
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 @router.get("/health")
-async def get_health_status(db: Session = Depends(get_db)):
+async def get_health_status(
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(oauth2_scheme_optional)
+):
     """
-    Mandatory Phase 1 Health Endpoint.
-    Returns structured real-time operational status without fake metrics.
+    SEC-013: Returns a minimal liveness probe for unauthenticated callers.
+    Full infrastructure details require a valid JWT token.
     """
-    # 1. Check Database & PostGIS
+    # Determine if the caller is authenticated
+    is_authenticated = False
+    if token:
+        payload = decode_access_token(token)
+        is_authenticated = payload is not None
+
+    # 1. Basic DB connectivity check
     db_ok = False
     postgis_version = "Unknown"
     db_latency_ms = 0.0
@@ -39,17 +51,21 @@ async def get_health_status(db: Session = Depends(get_db)):
         db_ok = False
         postgis_version = f"Error: {str(e)}"
 
-    # 2. Check System Resources
+    # Minimal response for unauthenticated callers (liveness probe only)
+    if not is_authenticated:
+        return {
+            "status": "healthy" if db_ok else "degraded",
+            "service": settings.PROJECT_NAME,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    # Full response for authenticated users
     cpu_pct = psutil.cpu_percent(interval=None)
     mem = psutil.virtual_memory()
     mem_used_mb = round(mem.used / (1024 * 1024), 1)
     mem_total_mb = round(mem.total / (1024 * 1024), 1)
-
-    # 3. Check AI Engine Readiness
     ai_ready = True
     ai_details = {"detector": "Ultralytics YOLOv8", "ocr": "EasyOCR / Bi-lateral CLAHE", "fusion": "Temporal Multi-frame Consensus"}
-
-    # 4. Stream Manager stats
     active_stream_workers = len(stream_manager._workers)
 
     return {

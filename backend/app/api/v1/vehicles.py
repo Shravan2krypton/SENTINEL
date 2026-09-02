@@ -22,7 +22,7 @@ async def search_vehicle_history(
     min_confidence: float = Query(0.35),
     limit: int = Query(100),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)  # SEC-014: Mandatory auth — no anonymous access
 ):
     clean_plate = plate.replace("-", "").replace(" ", "").upper()
     query = (
@@ -38,12 +38,10 @@ async def search_vehicle_history(
     records = query.order_by(ANPRDetection.timestamp_pts.desc()).limit(limit).all()
 
     # Audit log vehicle search
-    username = current_user.username if current_user else "anonymous_operator"
-    role = current_user.role if current_user else "Operator"
     audit_service.log(
         db=db,
-        username=username,
-        role=role,
+        username=current_user.username,
+        role=current_user.role,
         action="VEHICLE_SEARCH",
         resource=f"/api/vehicles/{clean_plate}",
         details={"plate_query": clean_plate, "results_found": len(records)}
@@ -75,7 +73,7 @@ async def search_vehicle_history(
 async def get_vehicle_journey(
     plate: str,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)  # SEC-014: Mandatory auth
 ):
     """
     Reconstructs observed vehicle journey and infers transit corridors across the Gujarat CCTV network.
@@ -83,12 +81,10 @@ async def get_vehicle_journey(
     """
     journey = journey_service.reconstruct_journey(plate, db)
 
-    username = current_user.username if current_user else "anonymous_operator"
-    role = current_user.role if current_user else "Operator"
     audit_service.log(
         db=db,
-        username=username,
-        role=role,
+        username=current_user.username,
+        role=current_user.role,
         action="JOURNEY_RECONSTRUCTION",
         resource=f"/api/vehicles/{plate}/journey",
         details={"plate": plate, "steps_count": len(journey.steps), "observed_points": len(journey.observed_points)}

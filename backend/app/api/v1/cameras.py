@@ -6,7 +6,7 @@ from app.models.camera import Camera, CameraHealth, Department
 from app.schemas.camera import CameraOut, CameraHealthOut, CameraUpdate
 from app.services.sentinel_client import sentinel_client
 from app.services.audit_service import audit_service
-from app.api.v1.auth import get_current_user
+from app.api.v1.auth import get_current_user, require_roles
 from app.models.user import User
 
 router = APIRouter(prefix="/cameras", tags=["Camera Registry"])
@@ -16,7 +16,8 @@ async def list_cameras(
     district: Optional[str] = Query(None, description="Filter by district"),
     status: Optional[str] = Query(None, description="Filter by status (ONLINE, OFFLINE)"),
     codec: Optional[str] = Query(None, description="Filter by codec (H264, H265)"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # SEC-008: Camera registry requires auth
 ):
     query = db.query(Camera)
     if district:
@@ -30,14 +31,14 @@ async def list_cameras(
     return cameras
 
 @router.get("/{camera_id}", response_model=CameraOut)
-async def get_camera(camera_id: str, db: Session = Depends(get_db)):
+async def get_camera(camera_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):  # SEC-008
     camera = db.query(Camera).filter(Camera.id == camera_id).first()
     if not camera:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Camera {camera_id} not found")
     return camera
 
 @router.get("/{camera_id}/health", response_model=List[CameraHealthOut])
-async def get_camera_health(camera_id: str, limit: int = 10, db: Session = Depends(get_db)):
+async def get_camera_health(camera_id: str, limit: int = 10, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):  # SEC-008
     records = (
         db.query(CameraHealth)
         .filter(CameraHealth.camera_id == camera_id)
@@ -48,7 +49,7 @@ async def get_camera_health(camera_id: str, limit: int = 10, db: Session = Depen
     return records
 
 @router.post("/sync-sentinel")
-async def trigger_sentinel_sync(db: Session = Depends(get_db)):
+async def trigger_sentinel_sync(db: Session = Depends(get_db), current_user: User = Depends(require_roles(["ADMIN", "OPERATOR"]))):
     """
     Triggers dynamic discovery and synchronization with the Sentinel Gateway catalogue.
     Consumes GET /api/ingest as the single source of truth.

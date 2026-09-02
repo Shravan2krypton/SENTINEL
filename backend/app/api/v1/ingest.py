@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Query, HTTPException, status
+from fastapi import APIRouter, Query, HTTPException, status, Depends
 from app.schemas.sentinel_ingest import SentinelCatalogueResponse, SentinelCameraItem
+from app.api.v1.auth import require_roles
+from app.models.user import User
 
 router = APIRouter(tags=["Sentinel Ingest Gateway"])
 
@@ -190,10 +192,13 @@ async def get_sentinel_catalogue(
     )
 
 @router.post("/ingest/register", response_model=SentinelCameraItem, status_code=status.HTTP_201_CREATED)
-async def register_sentinel_camera(camera: SentinelCameraItem):
+async def register_sentinel_camera(
+    camera: SentinelCameraItem,
+    current_user: User = Depends(require_roles(["ADMIN"]))  # SEC-003: Only ADMIN can inject cameras
+):
     """
     Dynamically register a new camera into the Sentinel Grid catalogue.
-    Proves zero-hardcoded dynamic discovery.
+    Requires ADMIN role to prevent camera injection attacks.
     """
     existing_idx = next((i for i, c in enumerate(SENTINEL_GRID_CATALOGUE) if c["camera_id"] == camera.camera_id), None)
     camera_dict = camera.model_dump()

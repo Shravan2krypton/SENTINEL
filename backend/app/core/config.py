@@ -1,4 +1,5 @@
 import os
+import secrets
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,12 +13,18 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     PROJECT_NAME: str = "Sentinel CCTV Intelligence Platform"
     API_V1_STR: str = "/api"
-    SECRET_KEY: str = "sentinel_secret_key_change_in_production_gujarat_cctv_2026"
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
-    # Neon PostgreSQL with PostGIS
-    DATABASE_URL: str = "postgresql://neondb_owner:npg_Y6Nzxe3fCRib@ep-summer-voice-ayutsy4d-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require"
+    # SEC-001 FIX: No default secret — application will raise on startup if not set in .env
+    # Rotate the key if the previous value "sentinel_secret_key_change_in_production_gujarat_cctv_2026"
+    # was exposed in git history.
+    SECRET_KEY: str = ""
+    ALGORITHM: str = "HS256"
+
+    # SEC-012 FIX: Reduced from 1440 (24h) to 480 (8h) to shrink stolen-token exposure window
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
+
+    # SEC-001 FIX: No default DATABASE_URL — must come from .env or environment
+    DATABASE_URL: str = ""
 
     # Redis Cache (supports local Redis or graceful in-memory fallback)
     REDIS_URL: Optional[str] = "redis://localhost:6379/0"
@@ -37,7 +44,30 @@ class Settings(BaseSettings):
     ANPR_CONFIDENCE_THRESHOLD: float = 0.60
     DEVICE: str = "cpu"
 
-    # CORS
-    BACKEND_CORS_ORIGINS: List[str] = ["*"]
+    # SEC-004 FIX: Explicit CORS origins — no wildcard.
+    # Override in .env: BACKEND_CORS_ORIGINS=["https://sentinel.gujarat.gov.in"]
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"]
+
+    # Brute-force protection — max failed login attempts before lockout
+    LOGIN_MAX_ATTEMPTS: int = 5
+    LOGIN_LOCKOUT_SECONDS: int = 300  # 5 minutes
+
+    def validate_critical_secrets(self):
+        """Fail fast if critical secrets are missing or still set to known-bad values."""
+        bad_defaults = {
+            "sentinel_secret_key_change_in_production_gujarat_cctv_2026",
+            "change_this_to_a_secure_random_string_in_production",
+            "",
+        }
+        if self.SECRET_KEY in bad_defaults:
+            raise RuntimeError(
+                "FATAL: SECRET_KEY is not set or is using a known-compromised default. "
+                "Set SECRET_KEY in your .env file to a cryptographically random value. "
+                f"Generate one with: python -c \"import secrets; print(secrets.token_hex(64))\""
+            )
+        if not self.DATABASE_URL:
+            raise RuntimeError(
+                "FATAL: DATABASE_URL is not set. Set DATABASE_URL in your .env file."
+            )
 
 settings = Settings()

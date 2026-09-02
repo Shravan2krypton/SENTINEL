@@ -6,15 +6,30 @@ from app.ai.temporal_fusion import normalize_plate_text, temporal_fusion
 client = TestClient(app)
 
 def test_health_endpoint():
-    """Verify Section 6 & Phase 1 Health Endpoint."""
+    """Verify Section 6 & Phase 1 Health Endpoint.
+    
+    SEC-013: Unauthenticated callers get minimal liveness probe.
+    Authenticated callers get full infrastructure details.
+    """
+    # Unauthenticated: minimal response only
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
-    assert data["components"]["database"]["status"] == "UP"
-    assert "3.6" in data["components"]["database"]["postgis_version"]
-    assert data["components"]["ai_engine"]["status"] == "READY"
-    assert data["system_metrics"]["cpu_percent"] >= 0
+    # SEC-013: sensitive details must NOT be in the unauthenticated response
+    assert "components" not in data
+    assert "system_metrics" not in data
+
+    # Authenticated: full details
+    login_res = client.post("/api/auth/login", json={"username": "admin", "password": "Sentinel@2026"})
+    token = login_res.json()["access_token"]
+    auth_response = client.get("/health", headers={"Authorization": f"Bearer {token}"})
+    assert auth_response.status_code == 200
+    auth_data = auth_response.json()
+    assert auth_data["components"]["database"]["status"] == "UP"
+    assert "3.6" in auth_data["components"]["database"]["postgis_version"]
+    assert auth_data["components"]["ai_engine"]["status"] == "READY"
+    assert auth_data["system_metrics"]["cpu_percent"] >= 0
 
 def test_sentinel_ingest_catalogue():
     """Verify Section 7 & Rule 2 Dynamic Catalogue Discovery."""
@@ -32,11 +47,15 @@ def test_sentinel_ingest_catalogue():
     assert vad_cam["codec"] in ("H264", "H265")
 
 def test_camera_sync_and_listing():
-    """Verify Section 8 Camera Registry."""
-    sync_res = client.post("/api/cameras/sync-sentinel")
+    """Verify Section 8 Camera Registry. SEC-008: Requires authentication."""
+    login_res = client.post("/api/auth/login", json={"username": "admin", "password": "Sentinel@2026"})
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    sync_res = client.post("/api/cameras/sync-sentinel", headers=headers)
     assert sync_res.status_code == 200
     
-    list_res = client.get("/api/cameras")
+    list_res = client.get("/api/cameras", headers=headers)
     assert list_res.status_code == 200
     cameras = list_res.json()
     assert len(cameras) >= 5
@@ -94,8 +113,8 @@ def test_watchlist_crud_and_matching():
     # Either 201 or 409 if already added
     assert wl_res.status_code in (201, 409)
 
-    # Check alert stats endpoint
-    stats_res = client.get("/api/alerts/summary/stats")
+    # Check alert stats endpoint — now requires authentication
+    stats_res = client.get("/api/alerts/summary/stats", headers=headers)
     assert stats_res.status_code == 200
     assert "active_total" in stats_res.json()
 

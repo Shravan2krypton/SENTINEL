@@ -8,7 +8,7 @@ from app.models.watchlist import WatchlistEntry
 from app.schemas.watchlist import WatchlistCreate, WatchlistOut, WatchlistUpdate
 from app.services.watchlist_matcher import watchlist_matcher
 from app.services.audit_service import audit_service
-from app.api.v1.auth import get_current_user
+from app.api.v1.auth import get_current_user, require_roles
 from app.models.user import User
 
 router = APIRouter(prefix="/watchlist", tags=["Watchlist Management"])
@@ -19,7 +19,8 @@ async def list_watchlist(
     priority: Optional[str] = Query(None),
     status: Optional[str] = Query("ACTIVE"),
     search: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # SEC-007: All roles can view watchlist
 ):
     query = db.query(WatchlistEntry)
     if status:
@@ -40,7 +41,7 @@ async def list_watchlist(
 async def create_watchlist_entry(
     entry_in: WatchlistCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_roles(["ADMIN", "OPERATOR", "INVESTIGATOR"]))  # SEC-007: Minimum INVESTIGATOR
 ):
     clean_plate = entry_in.plate_number.replace("-", "").replace(" ", "").upper()
     existing = db.query(WatchlistEntry).filter(WatchlistEntry.plate_number == clean_plate).first()
@@ -86,7 +87,7 @@ async def update_watchlist_entry(
     entry_id: str,
     update_in: WatchlistUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_roles(["ADMIN", "OPERATOR", "INVESTIGATOR"]))  # SEC-007: Minimum INVESTIGATOR
 ):
     entry = db.query(WatchlistEntry).filter(WatchlistEntry.id == entry_id).first()
     if not entry:
@@ -122,7 +123,7 @@ async def update_watchlist_entry(
 async def delete_watchlist_entry(
     entry_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_roles(["ADMIN", "OPERATOR"]))  # SEC-007: Only ADMIN/OPERATOR can delete
 ):
     entry = db.query(WatchlistEntry).filter(WatchlistEntry.id == entry_id).first()
     if not entry:

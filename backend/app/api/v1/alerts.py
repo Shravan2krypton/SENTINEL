@@ -18,7 +18,8 @@ async def list_alerts(
     severity: Optional[str] = Query(None, description="CRITICAL, HIGH, MEDIUM, LOW"),
     district: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # SEC-009: Alert data requires authentication
 ):
     query = (
         db.query(Alert, Camera)
@@ -120,7 +121,7 @@ async def update_alert_status(
     )
 
 @router.get("/summary/stats")
-async def get_alert_stats(db: Session = Depends(get_db)):
+async def get_alert_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):  # SEC-009
     total_active = db.query(Alert).filter(Alert.status == "ACTIVE").count()
     critical_active = db.query(Alert).filter(Alert.status == "ACTIVE", Alert.severity == "CRITICAL").count()
     high_active = db.query(Alert).filter(Alert.status == "ACTIVE", Alert.severity == "HIGH").count()

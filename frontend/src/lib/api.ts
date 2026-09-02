@@ -376,8 +376,14 @@ export class SentinelWebSocket {
 
   connect() {
     if (this.ws) return;
+    const token = localStorage.getItem('sentinel_token');
+    if (!token) {
+      // Don't connect until user is authenticated
+      this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+      return;
+    }
     try {
-      this.ws = new WebSocket(`${WS_BASE}/api/ws/alerts`);
+      this.ws = new WebSocket(`${WS_BASE}/api/ws/alerts?token=${encodeURIComponent(token)}`);
       this.ws.onmessage = (msg) => {
         try {
           const data = JSON.parse(msg.data);
